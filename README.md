@@ -8,7 +8,9 @@ Establecer la **"Raíz de Confianza" (Root of Trust)**. En informática forense,
 * **Patrón:** Arquitectura Hexagonal (Puertos y Adaptadores).
 * **Estilo:** Microservicios Cloud-Native.
 * **Framework:** Quarkus 3.35+ (Optimizado para alto rendimiento y bajo consumo).
-* **Principios:** Cumplimiento de los **12-Factor App** (especialmente Factor III: Configuración y Factor IV: Backing ...
+* **Principios:** Cumplimiento de los **12-Factor App** 
+  * Configuración 
+  * Backing Service
 ## 3. El Flujo de Registro Forense (Los 4 Pilares)
 
 1. **Validación Externa (Integridad):** Consumo de una API externa (Python/Azure) que emula el Registro Civil. El sistema no "cree" en lo que el usuario escribe, lo "verifica".
@@ -16,7 +18,7 @@ Establecer la **"Raíz de Confianza" (Root of Trust)**. En informática forense,
 3. **Persistencia Robusta:** Uso de PostgreSQL con identidades basadas en UUID para evitar ataques de enumeración de usuarios.
 4. **Optimización Reactiva:** Implementación de la estrategia `@Blocking` para manejar operaciones de red y base de datos sin congelar el núcleo del sistema (Event Loop).
 
-## 4. Componentes Clave para Recordar
+## 4. Componentes Clave 
 
 | Componente | Tecnología | Función Forense |
 | :--- | :--- | :--- |
@@ -33,31 +35,32 @@ Esta organización garantiza la independencia de la lógica de negocio frente a 
 module-a-identity/
 ├── src/main/java/com/tesis/identity/
 │   ├── application/
-│   │   └── AuthService.java            <-- Lógica de Registro y Login (Casos de Uso)
+│   │   └── AuthService.java                         <-- Lógica de Registro y Login 
 │   ├── domain/
 │   │   └── models/
-│   │       └── User.java               <-- Modelo de dominio (Java 25 Record)
+│   │       └── User.java                            <-- Modelo de dominio
 │   └── infrastructure/
 │       ├── client/
-│       │   └── IdentityClient.java     <-- Cliente para la API de Python (Azure)
+│       │   └── IdentityClient.java                  <-- Cliente para la API simulación registro civil
 │       ├── persistence/
-│       │   └── UserEntity.java         <-- Mapeo de Tabla "usuarios" (PostgreSQL)
+│       │   └── UserEntity.java                      <-- Mapeo de Tabla "usuarios" 
 │       └── rest/
-│           └── UserResource.java       <-- Endpoint expuesto (API Controller)
+│           └── UserResource.java                    <-- Endpoint expuesto (API Controller)
+│           └── ConstraintViolationMapper.java       <-- Errores de duplicidad
 ├── src/main/resources/
-│   └── application.properties          <-- Configuración (Factor III - 12 Factor App)
-└── build.gradle.kts                    <-- Gestión de dependencias (Lombok, Quarkus, BCrypt)
+│   └── application.properties                        <-- Configuración 
+└── build.gradle.kts                                  <-- Gestión de dependencias 
 ```
 
-## 2. Protocolo de Registro 
-
+## 2. Pruebas de Endpoints Login y Registro 
+### 2.1. Resgistro
 Este es el verbo que el Frontend (o Postman) consume para crear un nuevo autor en el sistema.
 
 * **Método:** POST
 * **URL:** `http://localhost:8080/usuarios/registro`
 * **Content-Type:** `application/json`
 
-**Cuerpo de la Petición (JSON Payload):**
+**Cuerpo de la Petición:**
 
 ```json
 {
@@ -70,6 +73,28 @@ Este es el verbo que el Frontend (o Postman) consume para crear un nuevo autor e
 }
 ```
 **Nota de Seguridad:** El campo `passwordHash` en este nivel lleva la contraseña en texto plano. El sistema la procesa con **BCrypt (Costo 12)** antes de que toque la base de datos.
+
+### 2.2. Login
+Este es el verbo que el Frontend (o Postman) consume para inicio de sesión del usuario en el sistema.
+
+* **Método:** POST
+* **URL:** `http://localhost:8080/usuarios/login`
+* **Content-Type:** `application/json`
+
+**Cuerpo de la Petición:**
+```json
+{
+  "correo": "mercedes@art.com",
+  "password": "Admin123!"
+}
+```
+
+### Pruebas de errores
+1. Control de mensajes amigables al usuario en caso de ducpilicidad de atributos unicos como `cedula` y `email`.
+   * **Resultado esperado:** `409 Conflict`
+   * **Mensaje:** `"error": "Error de integridad: El correo o la cédula ya se encuentran registrados."`
+2. No aceptacion de terminos y condiciones que requiere el sistema para validar su registro de forma éxitosa
+   * **Resultado esperado:** `"details": "Error id 24d29baa-71c3-4a5e-86ef-e18feed18030-1, java.lang.RuntimeException: Debe aceptar los terminos y condiciones para registrarse."` 
 
 ## 3. Protocolo de Validación 
 

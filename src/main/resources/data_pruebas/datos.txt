@@ -1,0 +1,45 @@
+{
+    "cedula": "9900000001",
+    "name": "MERCEDES MARIA",
+    "surname": "LÓPEZ GONZÁLEZ"
+  },
+  {
+    "cedula": "9900000002",
+    "name": "BYRON DAVID",
+    "surname": "CEVALLOS TRUJILLO"
+  },
+  {
+    "cedula": "9900000003",
+    "name": "GONZALO LUIS",
+    "surname": "BALCAZAR CAMPOVERDE"
+  },
+  {
+    "cedula": "9900000004",
+    "name": "FERNANDA NOEMI",
+    "surname": "CAMPOS MENDIETA"
+  },
+  {
+    "cedula": "9900000005",
+    "name": "JAIME EDUARDO",
+    "surname": "CÁRDENAS MOLINA"
+  },
+  {
+    "cedula": "9900000006",
+    "name": "CARLOS DANIEL",
+    "surname": "VILLAVICENCIO PESANTEZ"
+  },
+  {
+    "cedula": "9900000007",
+    "name": "MARLENE ESTEFANIA",
+    "surname": "NOVILLO JARA"
+  },
+  {
+    "cedula": "9900000008",
+    "name": "JOHANNA SOFIA",
+    "surname": "PEREZ CABRERA"
+  },
+  {
+    "cedula": "9900000009",
+    "name": "MARTHA PATRICIA",
+    "surname": "MORALES HARRIS"
+  }
