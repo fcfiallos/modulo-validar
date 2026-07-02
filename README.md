@@ -42,6 +42,7 @@ module-a-identity/
 │   └── infrastructure/
 │       ├── client/
 │       │   └── IdentityClient.java                  <-- Cliente para la API simulación registro civil
+│       │   └── SignatureClient.java                  <-- Cliente para la API simulación ca
 │       ├── persistence/
 │       │   └── UserEntity.java                      <-- Mapeo de Tabla "usuarios" 
 │       └── rest/
@@ -58,20 +59,7 @@ Este es el verbo que el Frontend (o Postman) consume para crear un nuevo autor e
 
 * **Método:** POST
 * **URL:** `http://localhost:8080/usuarios/registro`
-* **Content-Type:** `application/json`
-
-**Cuerpo de la Petición:**
-
-```json
-{
-  "cedula": "9900000001",
-  "nombres": "ANA",
-  "apellidos": "PEREZ",
-  "correo": "ana@ejemplo.com",
-  "nombreArtistico": "AnaVanguardia",
-  "passwordHash": "PasswordSeguro123"
-}
-```
+  ![img.png](img.png)
 **Nota de Seguridad:** El campo `passwordHash` en este nivel lleva la contraseña en texto plano. El sistema la procesa con **BCrypt (Costo 12)** antes de que toque la base de datos.
 
 ### 2.2. Login
@@ -101,7 +89,7 @@ Este es el verbo que el Frontend (o Postman) consume para inicio de sesión del 
 Este es el recurso externo que asegura la integridad de la identidad mediante la conexión con el simulador del Registro Civil.
 
 * **Método:** POST
-* **URL:** `https://azurewebsites.net`
+* **URL:** `https://api-simulacion-registro-civil-evbgdua8hvgpfkht.eastus-01.azurewebsites.net/api/validar-persona`
 * **Content-Type:** `application/json`
 
 **Cuerpo de la Petición (JSON-B):**
@@ -119,14 +107,9 @@ Este es el recurso externo que asegura la integridad de la identidad mediante la
 * **Fallo:** `0` (String) → Se lanza una excepción y el registro se cancela.
 ---
 # Endpoint protocolo de firmas digitales
-
-### endpoint codigo
-http://localhost:8080/usuarios/registro
-![img.png](img.png)
-
-# endpoints api azure
 * generar firmas
   https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/ca_emulada
+debe ir en body
 ```json
 {
   "cedula": "9900000003",
@@ -135,7 +118,11 @@ http://localhost:8080/usuarios/registro
   "password": "ClaveDe123"
 }
 ```
+se debe usar tambien el hearder para descargar la firma.p12 en donde dice SEND y la flecha ▼ esta send y download con eso se descarga el archivo
+
 ![img_1.png](img_1.png)
+
+igual retorna 0 o 1 en caso de exito o fallo
 * validar firma
   https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/validar_firma_externa
 ```json
@@ -145,8 +132,6 @@ http://localhost:8080/usuarios/registro
   "password": "XXXXXXXX"
 }
 ```
-igual retorna un 0 o 1 si un valor falla
-
 * firmar obra
   https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/firmar_obra
 
@@ -168,7 +153,7 @@ Cuando el usuario ya está logueado y quiere certificar una obra, el flujo serí
 
 1.  **Formulario en Frontend:**
     *   El usuario sube su imagen (PNG/JPG).
-    *   Escribe el Título, Software, etc. (lo que dijo Edlith).
+    *   Escribe el Título, Software, etc. 
     *   **Paso Clave:** El sistema le pide: *"Ingresa tu clave de firma electrónica"*.
 
 2.  **Lógica en el Backend (Quarkus):**
