@@ -12,31 +12,31 @@ import java.util.UUID;
 public class UserEntity extends PanacheEntityBase {
 
     @Id
-    @GeneratedValue // Quarkus/Hibernate manejará el UUID automáticamente
+    @GeneratedValue
     private UUID id;
 
-    @Column(unique = true, nullable = false, length = 20)
+    @Column(unique = true, nullable = false)
     private String cedula;
-
-    @Column(nullable = false, length = 100)
     private String nombres;
-
-    @Column(nullable = false, length = 100)
     private String apellidos;
 
-    @Column(unique = true, nullable = false, length = 150)
+    @Column(unique = true, nullable = false)
     private String correo;
 
-    @Column(name = "nombre_artistico", length = 100)
+    @Column(name = "nombre_artistico")
     private String nombreArtistico;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
+
+    @Lob
+    @Column(name = "firma_p12", columnDefinition = "TEXT")
+    private String firmaP12; // El archivo .p12 en Base64
 
     @Column(name = "acepta_terminos_plataforma")
     private boolean aceptaTerminosPlataforma;
 
-    @Column(name = "fecha_registro", nullable = false, updatable = false)
+    @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 
     private boolean activo;

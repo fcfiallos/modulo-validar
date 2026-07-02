@@ -26,13 +26,9 @@ dependencies {
 
     // 4. SEGURIDAD FORENSE
     implementation("org.mindrot:jbcrypt:0.4")
-//    implementation("io.quarkus:quarkus-rest:3.37.0")
-//    implementation("io.quarkus:quarkus-hibernate-orm:3.37.0")
-//    implementation("io.quarkus:quarkus-rest-jackson:3.37.0")
 
-    // 5. TESTING
-    testImplementation("io.quarkus:quarkus-junit5")
-    testImplementation("io.rest-assured:rest-assured")
+    //5. PAra lectura archivo.p12
+    //implementation("io.quarkus:quarkus-rest-multipart")
 }
 
 group = "com.tesis.identity"

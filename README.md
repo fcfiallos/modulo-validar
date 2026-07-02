@@ -117,6 +117,73 @@ Este es el recurso externo que asegura la integridad de la identidad mediante la
 
 * **Éxito:** `1` (String) → El proceso de registro continúa.
 * **Fallo:** `0` (String) → Se lanza una excepción y el registro se cancela.
+---
+# Endpoint protocolo de firmas digitales
+
+### endpoint codigo
+http://localhost:8080/usuarios/registro
+![img.png](img.png)
+
+# endpoints api azure
+* generar firmas
+  https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/ca_emulada
+```json
+{
+  "cedula": "9900000003",
+  "name": "GONZALO LUIS",
+  "surname": "BALCAZAR CAMPOVERDE",
+  "password": "ClaveDe123"
+}
+```
+![img_1.png](img_1.png)
+* validar firma
+  https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/validar_firma_externa
+```json
+{
+  "cedula": "9900000003",
+  "p12Base64": "XXXXXXXXXXXXXXXX",
+  "password": "XXXXXXXX"
+}
+```
+igual retorna un 0 o 1 si un valor falla
+
+* firmar obra
+  https://simulador-ca-ecuador-dhb6b2h9gbc6e2a2.eastus-01.azurewebsites.net/api/firmar_obra
+
+```json
+{
+  "p12Base64": "vía base de datos",
+  "password": "la que el usuario escribe en el cuadrito de texto",
+  "hashObra": "el hash SHA-512 que ella generó de la imagen"
+}
+```
+
+
+
+---
+
+### ¿Cómo funcionaría este nuevo proceso (Estilo SRI)?
+
+Cuando el usuario ya está logueado y quiere certificar una obra, el flujo sería este:
+
+1.  **Formulario en Frontend:**
+    *   El usuario sube su imagen (PNG/JPG).
+    *   Escribe el Título, Software, etc. (lo que dijo Edlith).
+    *   **Paso Clave:** El sistema le pide: *"Ingresa tu clave de firma electrónica"*.
+
+2.  **Lógica en el Backend (Quarkus):**
+    *   Tu código busca en la base de datos al usuario y recupera su `firma_p12` (el Base64).
+    *   Llamas a un **NUEVO endpoint** en tu Azure Function de Python llamado `/firmar_obra`.
+    *   **Le envías:** El Base64 guardado + la clave que el usuario acaba de escribir + los metadatos de la obra.
+
+3.  **Lógica en Python (Azure):**
+    *   Recibe el archivo y la clave.
+    *   **Desencripta** el `.p12` en memoria.
+    *   Usa la **Llave Privada** para firmar el hash de la imagen.
+    *   Devuelve la firma digital.
+
+---
+
 
 
 
