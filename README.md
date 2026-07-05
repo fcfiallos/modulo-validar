@@ -147,7 +147,7 @@ igual retorna 0 o 1 en caso de exito o fallo
 ```json
 {
   "cedula": "9900000003",
-  "password": "XXXXXXXX",
+  "p12Password": "XXXXXXXX",
   "hashObra": "XXXXXXXXXXXXXXXX"
 }
 ```
