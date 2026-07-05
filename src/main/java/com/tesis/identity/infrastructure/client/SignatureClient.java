@@ -19,5 +19,6 @@ public interface SignatureClient {
     @POST
     @Path("/firmar_obra")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     JsonObject signWork(JsonObject body);
 }

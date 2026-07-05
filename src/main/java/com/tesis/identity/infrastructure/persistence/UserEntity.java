@@ -29,7 +29,6 @@ public class UserEntity extends PanacheEntityBase {
     @Column(name = "password_hash")
     private String passwordHash;
 
-    @Lob
     @Column(name = "firma_p12", columnDefinition = "TEXT")
     private String firmaP12; // El archivo .p12 en Base64
 

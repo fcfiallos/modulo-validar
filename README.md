@@ -142,8 +142,24 @@ igual retorna 0 o 1 en caso de exito o fallo
   "hashObra": "el hash SHA-512 que ella generó de la imagen"
 }
 ```
-
-
+* firma test
+**URL:** http://localhost:8080/usuarios/firmar-obra-test
+```json
+{
+  "cedula": "9900000003",
+  "password": "XXXXXXXX",
+  "hashObra": "XXXXXXXXXXXXXXXX"
+}
+```
+este busca la cedula como tenias y busca la firma y la clave y hace la llamada a la api de firmar obra y retorna la firma digital
+le puedes cambiar a la firma si te resulta mejor
+```json
+{
+  "status": "signed",
+  "firmaDigital": "NwbaQj1eJhWWUUdzqBPgmjF1cpICMfdeAnWJ36tbbuAaT5lrvPzRK3sZUXAvrEzPJHF/OrDWh2Yf+BKheWjsyFFJCN9rdrnrvR2xr2XAwAoV4O+HcBicdun07XgDlIvlvdiKnclcz27QEPzDACeQbEYGMIQoqAHpG/T+ABrbEJV43pshKQSEhMCT3lZbz6ollTKDmWvOM6jmdYgYCSOgx4+qaYvlGNbMPVlXdgrH4THrOsTtLfCWdhk3x+fNHM2H1lP2fCmTipl+XYYolHF7EhNmqJLbSp5IXugBFCPPR4bkzOHbJ+XqcAZ5KS/NNlBbuhCrsImrEViHH6cON6DeGIU2u4piTrue6iYpQ+tyQefQqqxBDDVnCNV1w6x9K5DN97J9ByXnGG7WButIoMqPIVL1+mNO+5NCYb1ktux8qcP7z6oCF8d/lKd68SxBbnntMCN/9HP5teA0shQMICV6yqrPrdr+yHy6YzZ8BSdPUg+J/3Js5EXCbOUFQFD/nJuETbUapczH7GB2MmMYaKeudc/DZzGvrtMMFtTNPgFlY+uJ155ZVdJo6QaiXwqiQ7rQrspnzxsMFX2ArQJyB0Ly1hV0k24zerm8I1Xcv0aszGSdEc+EUEC0dd0JW4i6PTZuHj2ZbOH3ME+ALnJ5guTIJXQHkqMbfun13zE65SaTvrg=",
+  "algoritmo": "SHA512withRSA"
+}
+```
 
 ---
 

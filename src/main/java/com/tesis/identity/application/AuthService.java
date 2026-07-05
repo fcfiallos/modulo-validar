@@ -8,10 +8,12 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import lombok.extern.java.Log;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.mindrot.jbcrypt.BCrypt;
 import java.util.Optional;
 
+@Log
 @ApplicationScoped
 public class AuthService {
 
@@ -75,5 +77,30 @@ public class AuthService {
         }
 
         return user;
+    }
+
+    @Transactional
+    public JsonObject processWorkSignature(String cedula, String p12Password, String hashObra) {
+        // 1. Recuperar al usuario de la BD usando la cédula
+        UserEntity user = UserEntity.find("cedula", cedula).firstResult();
+
+        if (user == null) {
+            throw new RuntimeException("Usuario no encontrado en el sistema.");
+        }
+
+        // 2. Extraer el p12Base64 (que ahora es TEXT real, no un número)
+        String p12Stored = user.getFirmaP12();
+
+        // 3. Construir el JSON para la Azure Function
+        JsonObject jsonToAzure = Json.createObjectBuilder()
+                .add("p12Base64", p12Stored)
+                .add("password", p12Password)
+                .add("hashObra", hashObra)
+                .build();
+
+        // 4. Llamar a la Azure Function y retornar la Firma Digital
+        String msg = "Enviando material criptográfico a Azure para firma de obra de: { "+ cedula + " }";
+        log.info(msg);
+        return signatureClient.signWork(jsonToAzure);
     }
 }
