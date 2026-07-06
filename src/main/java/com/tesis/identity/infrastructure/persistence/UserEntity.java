@@ -15,9 +15,11 @@ public class UserEntity extends PanacheEntityBase {
     @GeneratedValue
     private UUID id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, columnDefinition = "TEXT")
     private String cedula;
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String nombres;
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String apellidos;
 
     @Column(unique = true, nullable = false)

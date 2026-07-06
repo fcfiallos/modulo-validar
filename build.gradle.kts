@@ -27,8 +27,12 @@ dependencies {
     // 4. SEGURIDAD FORENSE
     implementation("org.mindrot:jbcrypt:0.4")
 
-    //5. PAra lectura archivo.p12
-    //implementation("io.quarkus:quarkus-rest-multipart")
+    //5. key de azure
+    implementation("com.azure:azure-security-keyvault-keys:4.8.2")
+//    implementation("io.quarkiverse.azureservices:quarkus-azure-key-vault:1.0.0")
+    implementation("com.azure:azure-identity:1.13.0")
+
+
 }
 
 group = "com.tesis.identity"
