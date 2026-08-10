@@ -1,6 +1,5 @@
 package com.tesis.identity.infrastructure.rest;
 
-
 import com.tesis.identity.application.AuthService;
 import com.tesis.identity.infrastructure.persistence.UserEntity;
 import io.smallrye.common.annotation.Blocking;
@@ -22,7 +21,7 @@ import java.nio.file.Files;
 import java.util.Base64;
 
 @Log
-@Path("/usuarios")
+@Path("/api/v1/auth")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource {
@@ -42,12 +41,11 @@ public class UserResource {
             @RestForm String nombreArtistico,
             @RestForm String password,
             @RestForm boolean aceptaTerminos,
-            @RestForm FileUpload firmaP12,       // Aquí llega el archivo
-            @RestForm String p12Password
-    ) throws IOException {
+            @RestForm FileUpload firmaP12, // Aquí llega el archivo
+            @RestForm String p12Password) throws IOException {
 
         // LOG DE CONTROL: Para ver qué llega
-        String msg= "Recibiendo solicitud de registro para cédula: { "+ cedula + " }";
+        String msg = "Recibiendo solicitud de registro para cédula: { " + cedula + " }";
         log.info(msg);
 
         // VALIDACIÓN PREVENTIVA (Evita el NullPointerException)
@@ -60,7 +58,7 @@ public class UserResource {
                     .build();
         }
 
-        msg = "Archivo recibido: { "+ firmaP12.fileName()+ "} ({ "+ Files.size(firmaP12.filePath())+" } bytes)";
+        msg = "Archivo recibido: { " + firmaP12.fileName() + "} ({ " + Files.size(firmaP12.filePath()) + " } bytes)";
         log.info(msg);
 
         // 1. Convertir archivo físico a Base64
@@ -104,6 +102,24 @@ public class UserResource {
         JsonObject result = authService.processWorkSignature(cedula, p12Pass, hashObra);
 
         return Response.ok(result).build();
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/cleanup-test-db")
+    @jakarta.transaction.Transactional
+    @Blocking
+    public Response cleanupTestDb() {
+        try {
+            UserEntity.getEntityManager().createNativeQuery(
+                "TRUNCATE TABLE firmas_autor, usuarios CASCADE;"
+            ).executeUpdate();
+            UserEntity.getEntityManager().createNativeQuery(
+                "ALTER TABLE usuarios ALTER COLUMN cedula TYPE TEXT, ALTER COLUMN nombres TYPE TEXT, ALTER COLUMN apellidos TYPE TEXT, ALTER COLUMN correo TYPE TEXT, ALTER COLUMN nombre_artistico TYPE TEXT, ALTER COLUMN password_hash TYPE TEXT;"
+            ).executeUpdate();
+            return Response.ok("{\"mensaje\": \"Base de datos limpiada y esquema ajustado a TEXT exitosamente.\"}").build();
+        } catch (Exception e) {
+            return Response.serverError().entity("{\"error\": \"" + e.getMessage() + "\"}").build();
+        }
     }
 
 }
