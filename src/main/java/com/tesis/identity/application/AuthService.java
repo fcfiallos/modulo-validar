@@ -80,7 +80,7 @@ public class AuthService {
         Optional<UserEntity> userOpt = UserEntity.find("correo", correo).firstResultOptional();
 
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("Usuario no encontrado.");
+            throw new CredencialesIncorrectasException("Credenciales incorrectas. Verifique su correo y contraseña.");
         }
 
         UserEntity user = userOpt.get();
@@ -92,7 +92,7 @@ public class AuthService {
 
         // Verificar password
         if (!BCrypt.checkpw(password, user.getPasswordHash())) {
-            throw new RuntimeException("Contrasena incorrecta.");
+            throw new CredencialesIncorrectasException("Credenciales incorrectas. Verifique su correo y contraseña.");
         }
 
         return user;
