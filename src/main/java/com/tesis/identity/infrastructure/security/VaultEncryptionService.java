@@ -1,4 +1,4 @@
-package com.tesis.identity.application;
+package com.tesis.identity.infrastructure.security;
 
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.models.EncryptionAlgorithm;

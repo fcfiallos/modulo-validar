@@ -8,9 +8,9 @@ import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
 @Provider
-public class ErrorNegocioMapper implements ExceptionMapper<RuntimeException> {
+public class GlobalExceptionMapper implements ExceptionMapper<RuntimeException> {
 
-    private static final Logger LOG = Logger.getLogger(ErrorNegocioMapper.class);
+    private static final Logger LOG = Logger.getLogger(GlobalExceptionMapper.class);
 
     @Override
     public Response toResponse(RuntimeException exception) {

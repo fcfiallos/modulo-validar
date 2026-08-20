@@ -3,6 +3,7 @@ package com.tesis.identity.application;
 import com.tesis.identity.infrastructure.client.SignatureClient;
 import com.tesis.identity.infrastructure.persistence.UserEntity;
 import com.tesis.identity.infrastructure.client.IdentityClient;
+import com.tesis.identity.infrastructure.security.VaultEncryptionService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

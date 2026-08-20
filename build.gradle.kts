@@ -28,8 +28,7 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
 
     //5. key de azure
-    implementation("com.azure:azure-security-keyvault-keys:4.8.2")
-//    implementation("io.quarkiverse.azureservices:quarkus-azure-key-vault:1.0.0")
+    implementation("com.azure:azure-security-keyvault-keys:4.10.6")
     implementation("com.azure:azure-identity:1.13.0")
 
 
