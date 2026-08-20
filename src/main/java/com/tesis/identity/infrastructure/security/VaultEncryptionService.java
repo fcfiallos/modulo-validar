@@ -2,6 +2,7 @@ package com.tesis.identity.infrastructure.security;
 
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.models.EncryptionAlgorithm;
+import com.tesis.identity.application.ports.EncryptionPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,7 @@ import java.util.Base64;
 
 @Slf4j
 @ApplicationScoped
-public class VaultEncryptionService {
+public class VaultEncryptionService implements EncryptionPort {
 
     @Inject
     CryptographyClient cryptoClient;
@@ -28,6 +29,7 @@ public class VaultEncryptionService {
     /**
      * Implementación de Envelope Encryption (Cifrado de Sobre)
      */
+    @Override
     public String encrypt(String plainText) {
         if (plainText == null || plainText.isEmpty()) return plainText;
 
@@ -82,6 +84,7 @@ public class VaultEncryptionService {
         }
     }
 
+    @Override
     public String decrypt(String combinedBase64) {
         if (combinedBase64 == null || combinedBase64.isEmpty()) return combinedBase64;
 
