@@ -18,6 +18,7 @@ public class UserEntityMapper {
                 entity.getPasswordHash(),
                 entity.getFirmaP12(),
                 entity.isAceptaTerminosPlataforma(),
+                entity.getRol(),
                 entity.getFechaRegistro(),
                 entity.isActivo()
         );
@@ -34,6 +35,7 @@ public class UserEntityMapper {
                 .passwordHash(user.passwordHash())
                 .firmaP12(user.firmaP12())
                 .aceptaTerminosPlataforma(user.aceptaTerminosPlataforma())
+                .rol(user.rol())
                 .fechaRegistro(user.fechaRegistro())
                 .activo(user.activo())
                 .build();

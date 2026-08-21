@@ -1,11 +1,13 @@
 package com.tesis.identity.application;
 
 import com.tesis.identity.application.dto.LoginRequest;
+import com.tesis.identity.application.dto.LoginResponse;
 import com.tesis.identity.application.dto.RegisterUserRequest;
 import com.tesis.identity.application.dto.UserResponse;
 import com.tesis.identity.application.dto.WorkSignatureRequest;
 import com.tesis.identity.application.mapper.UserMapper;
 import com.tesis.identity.application.ports.EncryptionPort;
+import com.tesis.identity.application.ports.TokenPort;
 import com.tesis.identity.application.ports.UserRepositoryPort;
 import com.tesis.identity.domain.exceptions.BusinessRuleViolationException;
 import com.tesis.identity.domain.exceptions.InvalidCredentialsException;
@@ -42,6 +44,11 @@ public class AuthService {
 
     @Inject
     UserMapper userMapper;
+
+    @Inject
+    TokenPort tokenPort;
+
+    private static final String DEFAULT_ROLE = "USER";
 
     // --- REGISTRO ---
     public UserResponse registerUser(RegisterUserRequest request) {
@@ -95,6 +102,7 @@ public class AuthService {
                 passwordHash,
                 encryptedFirmaP12,
                 request.aceptaTerminos(),
+                DEFAULT_ROLE,
                 null,
                 true
         );
@@ -104,7 +112,7 @@ public class AuthService {
     }
 
     // --- LOGIN ---
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.correo())
                 .orElseThrow(() -> new InvalidCredentialsException(
                         "Credenciales incorrectas. Verifique su correo y contraseña."));
@@ -129,11 +137,13 @@ public class AuthService {
                 user.passwordHash(),
                 user.firmaP12(),
                 user.aceptaTerminosPlataforma(),
+                user.rol() != null ? user.rol() : DEFAULT_ROLE,
                 user.fechaRegistro(),
                 user.activo()
         );
 
-        return userMapper.toResponse(userLegible);
+        String token = tokenPort.issueToken(userLegible);
+        return new LoginResponse(userMapper.toResponse(userLegible), token);
     }
 
     // --- FIRMA DE OBRA ---

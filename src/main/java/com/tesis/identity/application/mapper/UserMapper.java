@@ -16,6 +16,7 @@ public class UserMapper {
                 user.correo(),
                 user.nombreArtistico(),
                 user.aceptaTerminosPlataforma(),
+                user.rol(),
                 user.fechaRegistro(),
                 user.activo()
         );

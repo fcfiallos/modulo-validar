@@ -2,9 +2,11 @@ package com.tesis.identity.infrastructure.rest;
 
 import com.tesis.identity.application.AuthService;
 import com.tesis.identity.application.dto.LoginRequest;
+import com.tesis.identity.application.dto.LoginResponse;
 import com.tesis.identity.application.dto.RegisterUserRequest;
 import com.tesis.identity.application.dto.UserResponse;
 import com.tesis.identity.application.dto.WorkSignatureRequest;
+import io.quarkus.security.Authenticated;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
@@ -77,12 +79,18 @@ public class UserResource {
     @Path("/login")
     @Blocking
     public Response login(LoginRequest request) {
-        UserResponse user = authService.login(request);
-        return Response.ok(user).build();
+        LoginResponse response = authService.login(request);
+        return Response.ok(response).build();
     }
 
+    /**
+     * Requiere un JWT válido (emitido por /login). No es "test" en el sentido
+     * de estar abierto al público: entrega la firma digital de la obra, así
+     * que solo un usuario autenticado puede invocarlo.
+     */
     @POST
     @Path("/firmar-obra-test")
+    @Authenticated
     @Blocking
     public Response signTest(WorkSignatureRequest request) {
         JsonObject result = authService.processWorkSignature(request);

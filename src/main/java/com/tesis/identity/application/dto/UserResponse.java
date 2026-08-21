@@ -16,6 +16,7 @@ public record UserResponse(
         String correo,
         String nombreArtistico,
         boolean aceptaTerminosPlataforma,
+        String rol,
         LocalDateTime fechaRegistro,
         boolean activo
 ) {}

@@ -13,6 +13,7 @@ public record User(
         String passwordHash,
         String firmaP12,
         boolean aceptaTerminosPlataforma,
+        String rol,
         LocalDateTime fechaRegistro,
         boolean activo
 ) {}

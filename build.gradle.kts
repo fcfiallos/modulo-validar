@@ -31,6 +31,9 @@ dependencies {
     implementation("com.azure:azure-security-keyvault-keys:4.10.6")
     implementation("com.azure:azure-identity:1.13.0")
 
+    // 6. Autenticación basada en tokens (JWT)
+    implementation("io.quarkus:quarkus-smallrye-jwt")
+    implementation("io.quarkus:quarkus-smallrye-jwt-build")
 
 }
 
