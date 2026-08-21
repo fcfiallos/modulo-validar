@@ -1,12 +1,15 @@
 package com.tesis.identity.infrastructure.rest;
 
-import com.tesis.identity.application.CredencialesIncorrectasException;
-import jakarta.json.Json;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import org.jboss.logging.Logger;
 
+/**
+ * Último recurso: cualquier RuntimeException que NO sea una DomainException
+ * (bugs, fallos de infraestructura, NPEs, etc.). No se expone el mensaje
+ * interno de la excepción al cliente; el detalle completo va solo al log.
+ */
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<RuntimeException> {
 
@@ -14,18 +17,11 @@ public class GlobalExceptionMapper implements ExceptionMapper<RuntimeException> 
 
     @Override
     public Response toResponse(RuntimeException exception) {
-        String mensaje = (exception.getMessage() != null && !exception.getMessage().isBlank())
-                ? exception.getMessage()
-                : "Ha ocurrido un error inesperado.";
+        LOG.error("Error inesperado no controlado", exception);
 
-        LOG.warn("Error de negocio controlado: " + mensaje);
-
-        int status = (exception instanceof CredencialesIncorrectasException)
-                ? Response.Status.UNAUTHORIZED.getStatusCode()
-                : Response.Status.BAD_REQUEST.getStatusCode();
-
+        int status = Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
         return Response.status(status)
-                .entity(Json.createObjectBuilder().add("error", mensaje).build())
+                .entity(ApiError.of("Ha ocurrido un error inesperado. Intente nuevamente más tarde.", status))
                 .build();
     }
 }

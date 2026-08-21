@@ -7,6 +7,11 @@ import com.tesis.identity.application.dto.WorkSignatureRequest;
 import com.tesis.identity.application.mapper.UserMapper;
 import com.tesis.identity.application.ports.EncryptionPort;
 import com.tesis.identity.application.ports.UserRepositoryPort;
+import com.tesis.identity.domain.exceptions.BusinessRuleViolationException;
+import com.tesis.identity.domain.exceptions.InvalidCredentialsException;
+import com.tesis.identity.domain.exceptions.TermsNotAcceptedException;
+import com.tesis.identity.domain.exceptions.UserAlreadyExistsException;
+import com.tesis.identity.domain.exceptions.UserNotFoundException;
 import com.tesis.identity.domain.models.User;
 import com.tesis.identity.infrastructure.client.IdentityClient;
 import com.tesis.identity.infrastructure.client.SignatureClient;
@@ -43,25 +48,34 @@ public class AuthService {
 
         // 1. Validar términos
         if (!request.aceptaTerminos())
-            throw new RuntimeException("Debe aceptar los términos.");
+            throw new TermsNotAcceptedException("Debe aceptar los términos.");
 
-        // 2. VALIDACIÓN LEGAL (API Registro Civil)
+        // 2. Verificación proactiva de duplicados (evita gastar llamadas externas
+        //    si la cédula o el correo ya están registrados; la restricción única
+        //    de la base de datos sigue siendo la red de seguridad ante condiciones
+        //    de carrera, ver ConstraintViolationMapper).
+        if (userRepository.findByEmail(request.correo()).isPresent()
+                || userRepository.findByCedula(request.cedula()).isPresent()) {
+            throw new UserAlreadyExistsException("El correo o la cédula ya se encuentran registrados.");
+        }
+
+        // 3. VALIDACIÓN LEGAL (API Registro Civil)
         JsonObject idBody = Json.createObjectBuilder()
                 .add("cedula", request.cedula())
                 .add("name", request.nombres())
                 .add("surname", request.apellidos())
                 .build();
         if (!"1".equals(identityClient.validate(idBody)))
-            throw new RuntimeException("Identidad no confirmada por el Registro Civil.");
+            throw new BusinessRuleViolationException("Identidad no confirmada por el Registro Civil.");
 
-        // 3. VALIDACIÓN FORENSE DE LA FIRMA (API Validadora)
+        // 4. VALIDACIÓN FORENSE DE LA FIRMA (API Validadora)
         JsonObject sigBody = Json.createObjectBuilder()
                 .add("p12Base64", request.p12Base64())
                 .add("password", request.p12Password())
                 .add("cedula", request.cedula())
                 .build();
         if (!"1".equals(signatureClient.validateSignature(sigBody)))
-            throw new RuntimeException("La firma subida no pertenece a su número de cédula.");
+            throw new BusinessRuleViolationException("La firma subida no pertenece a su número de cédula.");
 
         log.info("Cifrando datos sensibles en HSM Azure antes de persistir...");
 
@@ -92,15 +106,15 @@ public class AuthService {
     // --- LOGIN ---
     public UserResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.correo())
-                .orElseThrow(() -> new CredencialesIncorrectasException(
+                .orElseThrow(() -> new InvalidCredentialsException(
                         "Credenciales incorrectas. Verifique su correo y contraseña."));
 
         if (!user.activo()) {
-            throw new RuntimeException("Esta cuenta ha sido desactivada.");
+            throw new BusinessRuleViolationException("Esta cuenta ha sido desactivada.");
         }
 
         if (!BCrypt.checkpw(request.password(), user.passwordHash())) {
-            throw new CredencialesIncorrectasException(
+            throw new InvalidCredentialsException(
                     "Credenciales incorrectas. Verifique su correo y contraseña.");
         }
 
@@ -125,7 +139,7 @@ public class AuthService {
     // --- FIRMA DE OBRA ---
     public JsonObject processWorkSignature(WorkSignatureRequest request) {
         User user = userRepository.findByCedula(request.cedula())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado en el sistema."));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado en el sistema."));
 
         log.info("Solicitando llave maestra a Azure para liberar credencial de custodia...");
         String decryptedP12 = encryptionService.decrypt(user.firmaP12());
