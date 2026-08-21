@@ -6,13 +6,16 @@ import com.tesis.identity.application.ports.EncryptionPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
@@ -22,9 +25,45 @@ public class VaultEncryptionService implements EncryptionPort {
     @Inject
     CryptographyClient cryptoClient;
 
+    /**
+     * Deuda técnica temporal y deliberada: Azure Key Vault ya está
+     * aprovisionado pero todavía no tiene Managed Identity ni acceso
+     * configurado, así que si se apaga este flag hoy la app no podría
+     * cifrar/descifrar nada. Mientras tanto, si Key Vault falla, se cae a un
+     * "sobre" cifrado local con una llave fija embebida en el jar — NO es
+     * cifrado real de custodia, es solo para no bloquear el desarrollo.
+     * En cuanto haya Managed Identity + acceso a Key Vault verificado en
+     * Azure, poner tesis.encryption.allow-insecure-fallback=false (o la env
+     * var ALLOW_INSECURE_ENCRYPTION_FALLBACK=false) para que un fallo de
+     * Key Vault en producción falle duro (500) en vez de cifrar con esta
+     * llave débil.
+     */
+    @ConfigProperty(name = "tesis.encryption.allow-insecure-fallback", defaultValue = "true")
+    boolean allowInsecureFallback;
+
     private static final String AES_ALGORITHM = "AES/GCM/NoPadding";
     private static final int TAG_BIT_LENGTH = 128;
     private static final int IV_BYTE_LENGTH = 12;
+    private static final int WRAPPED_KEY_LENGTH = 512; // RSA-4096 => bloque de 512 bytes
+
+    private static final byte[] LOCAL_MASTER_KEY_PADDED = buildPaddedLocalMasterKey();
+
+    private static byte[] buildPaddedLocalMasterKey() {
+        byte[] localMasterKey = "TESIS_LOCAL_MASTER_KEY_2026_SOBRE_512B_DEV_MODE!".getBytes(StandardCharsets.UTF_8);
+        byte[] padded = new byte[WRAPPED_KEY_LENGTH];
+        for (int i = 0; i < WRAPPED_KEY_LENGTH; i++) {
+            padded[i] = localMasterKey[i % localMasterKey.length];
+        }
+        return padded;
+    }
+
+    private static byte[] xorWithLocalMasterKey(byte[] data) {
+        byte[] result = new byte[WRAPPED_KEY_LENGTH];
+        for (int i = 0; i < WRAPPED_KEY_LENGTH; i++) {
+            result[i] = (byte) (data[i] ^ LOCAL_MASTER_KEY_PADDED[i]);
+        }
+        return result;
+    }
 
     /**
      * Implementación de Envelope Encryption (Cifrado de Sobre)
@@ -56,18 +95,7 @@ public class VaultEncryptionService implements EncryptionPort {
                     throw new IllegalStateException("cryptoClient no inicializado");
                 }
             } catch (Exception azureEx) {
-                log.warn("[VaultEncryptionService] Azure KeyVault no disponible en entorno local, aplicando sobre criptográfico de desarrollo: {}", azureEx.getMessage());
-                byte[] localMasterKey = "TESIS_LOCAL_MASTER_KEY_2026_SOBRE_512B_DEV_MODE!".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                byte[] paddedKey = new byte[512];
-                for (int i = 0; i < 512; i++) {
-                    paddedKey[i] = localMasterKey[i % localMasterKey.length];
-                }
-                byte[] rawKeyBytes = aesKey.getEncoded();
-                encryptedAesKey = new byte[512];
-                System.arraycopy(rawKeyBytes, 0, encryptedAesKey, 0, rawKeyBytes.length);
-                for (int i = 0; i < 512; i++) {
-                    encryptedAesKey[i] ^= paddedKey[i];
-                }
+                encryptedAesKey = localFallbackWrap(aesKey.getEncoded(), azureEx);
             }
 
             // 4. Empaquetar: [LlaveAESCifrada(512bytes)] + [IV(12bytes)] + [DatosCifrados]
@@ -91,15 +119,14 @@ public class VaultEncryptionService implements EncryptionPort {
         try {
             byte[] combined = Base64.getDecoder().decode(combinedBase64);
 
-            // 1. Extraer las partes (RSA 4096 genera un bloque de 512 bytes)
-            int keyLength = 512;
-            byte[] encryptedAesKey = new byte[keyLength];
+            // 1. Extraer las partes
+            byte[] encryptedAesKey = new byte[WRAPPED_KEY_LENGTH];
             byte[] iv = new byte[IV_BYTE_LENGTH];
-            byte[] cipherText = new byte[combined.length - keyLength - IV_BYTE_LENGTH];
+            byte[] cipherText = new byte[combined.length - WRAPPED_KEY_LENGTH - IV_BYTE_LENGTH];
 
-            System.arraycopy(combined, 0, encryptedAesKey, 0, keyLength);
-            System.arraycopy(combined, keyLength, iv, 0, IV_BYTE_LENGTH);
-            System.arraycopy(combined, keyLength + IV_BYTE_LENGTH, cipherText, 0, cipherText.length);
+            System.arraycopy(combined, 0, encryptedAesKey, 0, WRAPPED_KEY_LENGTH);
+            System.arraycopy(combined, WRAPPED_KEY_LENGTH, iv, 0, IV_BYTE_LENGTH);
+            System.arraycopy(combined, WRAPPED_KEY_LENGTH + IV_BYTE_LENGTH, cipherText, 0, cipherText.length);
 
             // 2. Descifrar la llave AES usando Azure o Fallback local
             byte[] decryptedAesKey;
@@ -110,19 +137,7 @@ public class VaultEncryptionService implements EncryptionPort {
                     throw new IllegalStateException("cryptoClient no inicializado");
                 }
             } catch (Exception azureEx) {
-                log.warn("[VaultEncryptionService] Azure KeyVault no disponible en entorno local, aplicando descifrado de sobre de desarrollo");
-                byte[] localMasterKey = "TESIS_LOCAL_MASTER_KEY_2026_SOBRE_512B_DEV_MODE!".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                byte[] paddedKey = new byte[512];
-                for (int i = 0; i < 512; i++) {
-                    paddedKey[i] = localMasterKey[i % localMasterKey.length];
-                }
-                byte[] rawAes = new byte[32];
-                byte[] unpadded = new byte[512];
-                for (int i = 0; i < 512; i++) {
-                    unpadded[i] = (byte) (encryptedAesKey[i] ^ paddedKey[i]);
-                }
-                System.arraycopy(unpadded, 0, rawAes, 0, 32);
-                decryptedAesKey = rawAes;
+                decryptedAesKey = localFallbackUnwrap(encryptedAesKey, azureEx);
             }
 
             // 3. Descifrar los datos localmente con la llave recuperada
@@ -137,5 +152,31 @@ public class VaultEncryptionService implements EncryptionPort {
             log.error("Error al abrir el sobre criptográfico: {}", e.getMessage(), e);
             throw new RuntimeException("Acceso denegado a la credencial blindada: " + e.getMessage());
         }
+    }
+
+    private byte[] localFallbackWrap(byte[] rawAesKey, Exception azureEx) {
+        requireFallbackAllowed(azureEx);
+        byte[] padded = new byte[WRAPPED_KEY_LENGTH];
+        System.arraycopy(rawAesKey, 0, padded, 0, rawAesKey.length);
+        return xorWithLocalMasterKey(padded);
+    }
+
+    private byte[] localFallbackUnwrap(byte[] wrappedAesKey, Exception azureEx) {
+        requireFallbackAllowed(azureEx);
+        byte[] unpadded = xorWithLocalMasterKey(wrappedAesKey);
+        return Arrays.copyOf(unpadded, 32); // AES-256 -> 32 bytes
+    }
+
+    private void requireFallbackAllowed(Exception azureEx) {
+        if (!allowInsecureFallback) {
+            throw new IllegalStateException(
+                    "Azure Key Vault no disponible y el fallback de cifrado local está deshabilitado "
+                            + "(tesis.encryption.allow-insecure-fallback=false). "
+                            + "Configure Managed Identity y acceso a Key Vault antes de desplegar.",
+                    azureEx);
+        }
+        log.warn("[VaultEncryptionService] ALERTA DE SEGURIDAD: Azure Key Vault no disponible, "
+                + "aplicando sobre criptográfico LOCAL INSEGURO (fallback temporal, ver tesis.encryption.allow-insecure-fallback). Causa: {}",
+                azureEx.getMessage());
     }
 }
