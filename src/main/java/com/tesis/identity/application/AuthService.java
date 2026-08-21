@@ -118,7 +118,7 @@ public class AuthService {
                     "Credenciales incorrectas. Verifique su correo y contraseña.");
         }
 
-        // Los nombres/apellidos se guardan cifrados: los descifrarnos para la respuesta
+        // Los nombres/apellidos se guardan cifrados: se descifran para la respuesta
         User userLegible = new User(
                 user.id(),
                 user.cedula(),
