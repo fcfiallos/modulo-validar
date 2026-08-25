@@ -37,6 +37,9 @@ public class UserEntity extends PanacheEntityBase {
     @Column(name = "acepta_terminos_plataforma")
     private boolean aceptaTerminosPlataforma;
 
+    @Column(name = "rol")
+    private String rol;
+
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 
@@ -46,5 +49,8 @@ public class UserEntity extends PanacheEntityBase {
     void prePersist() {
         this.fechaRegistro = LocalDateTime.now();
         this.activo = true;
+        if (this.rol == null || this.rol.isBlank()) {
+            this.rol = "USER";
+        }
     }
 }

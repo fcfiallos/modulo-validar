@@ -1,7 +1,12 @@
 package com.tesis.identity.infrastructure.rest;
 
 import com.tesis.identity.application.AuthService;
-import com.tesis.identity.infrastructure.persistence.UserEntity;
+import com.tesis.identity.application.dto.LoginRequest;
+import com.tesis.identity.application.dto.LoginResponse;
+import com.tesis.identity.application.dto.RegisterUserRequest;
+import com.tesis.identity.application.dto.UserResponse;
+import com.tesis.identity.application.dto.WorkSignatureRequest;
+import io.quarkus.security.Authenticated;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
@@ -44,13 +49,10 @@ public class UserResource {
             @RestForm FileUpload firmaP12, // Aquí llega el archivo
             @RestForm String p12Password) throws IOException {
 
-        // LOG DE CONTROL: Para ver qué llega
-        String msg = "Recibiendo solicitud de registro para cédula: { " + cedula + " }";
-        log.info(msg);
+        log.info("Recibiendo solicitud de registro para cédula: { " + cedula + " }");
 
         // VALIDACIÓN PREVENTIVA (Evita el NullPointerException)
         if (firmaP12 == null || firmaP12.filePath() == null) {
-
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Json.createObjectBuilder()
                             .add("error", "Debe adjuntar el archivo de firma electrónica (.p12)")
@@ -58,68 +60,40 @@ public class UserResource {
                     .build();
         }
 
-        msg = "Archivo recibido: { " + firmaP12.fileName() + "} ({ " + Files.size(firmaP12.filePath()) + " } bytes)";
-        log.info(msg);
+        log.info("Archivo recibido: { " + firmaP12.fileName() + " } (" + Files.size(firmaP12.filePath()) + " bytes)");
 
         // 1. Convertir archivo físico a Base64
         byte[] fileBytes = Files.readAllBytes(firmaP12.filePath());
         String p12Base64 = Base64.getEncoder().encodeToString(fileBytes);
 
-        UserEntity user = UserEntity.builder()
-                .cedula(cedula)
-                .nombres(nombres)
-                .apellidos(apellidos)
-                .correo(correo)
-                .nombreArtistico(nombreArtistico)
-                .aceptaTerminosPlataforma(aceptaTerminos)
-                .build();
+        RegisterUserRequest request = new RegisterUserRequest(
+                cedula, nombres, apellidos, correo, nombreArtistico,
+                password, aceptaTerminos, p12Base64, p12Password);
 
-        authService.registerUser(user, password, p12Base64, p12Password);
+        UserResponse created = authService.registerUser(request);
 
-        return Response.status(Response.Status.CREATED).build();
+        return Response.status(Response.Status.CREATED).entity(created).build();
     }
 
     @POST
     @Path("/login")
     @Blocking
-    public Response login(JsonObject credentials) {
-        String email = credentials.getString("correo");
-        String pass = credentials.getString("password");
-
-        UserEntity user = authService.login(email, pass);
-        return Response.ok(user).build();
+    public Response login(LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return Response.ok(response).build();
     }
 
+    /**
+     * Requiere un JWT válido (emitido por /login). No es "test" en el sentido
+     * de estar abierto al público: entrega la firma digital de la obra, así
+     * que solo un usuario autenticado puede invocarlo.
+     */
     @POST
     @Path("/firmar-obra-test")
+    @Authenticated
     @Blocking
-    public Response signTest(JsonObject input) {
-        // Datos que vienen desde el "frontend" o Postman
-        String cedula = input.getString("cedula");
-        String p12Pass = input.getString("p12Password");
-        String hashObra = input.getString("hashObra");
-
-        JsonObject result = authService.processWorkSignature(cedula, p12Pass, hashObra);
-
+    public Response signTest(WorkSignatureRequest request) {
+        JsonObject result = authService.processWorkSignature(request);
         return Response.ok(result).build();
     }
-
-    @jakarta.ws.rs.DELETE
-    @Path("/cleanup-test-db")
-    @jakarta.transaction.Transactional
-    @Blocking
-    public Response cleanupTestDb() {
-        try {
-            UserEntity.getEntityManager().createNativeQuery(
-                "TRUNCATE TABLE firmas_autor, usuarios CASCADE;"
-            ).executeUpdate();
-            UserEntity.getEntityManager().createNativeQuery(
-                "ALTER TABLE usuarios ALTER COLUMN cedula TYPE TEXT, ALTER COLUMN nombres TYPE TEXT, ALTER COLUMN apellidos TYPE TEXT, ALTER COLUMN correo TYPE TEXT, ALTER COLUMN nombre_artistico TYPE TEXT, ALTER COLUMN password_hash TYPE TEXT;"
-            ).executeUpdate();
-            return Response.ok("{\"mensaje\": \"Base de datos limpiada y esquema ajustado a TEXT exitosamente.\"}").build();
-        } catch (Exception e) {
-            return Response.serverError().entity("{\"error\": \"" + e.getMessage() + "\"}").build();
-        }
-    }
-
 }

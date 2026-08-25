@@ -1,0 +1,7 @@
+package com.tesis.identity.domain.exceptions;
+
+public final class UserAlreadyExistsException extends DomainException {
+    public UserAlreadyExistsException(String message) {
+        super(message);
+    }
+}
