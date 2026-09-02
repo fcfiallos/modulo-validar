@@ -6,6 +6,7 @@ import java.util.UUID;
 public record User(
         UUID id,
         String cedula,
+        String cedulaHash,
         String nombres,
         String apellidos,
         String correo,

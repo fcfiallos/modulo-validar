@@ -13,7 +13,7 @@ public interface UserRepositoryPort {
 
     Optional<User> findByEmail(String correo);
 
-    Optional<User> findByCedula(String cedula);
+    Optional<User> findByCedulaHash(String cedulaHash);
 
     User save(User user);
 }

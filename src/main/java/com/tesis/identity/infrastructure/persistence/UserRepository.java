@@ -22,8 +22,8 @@ public class UserRepository implements UserRepositoryPort, PanacheRepository<Use
     }
 
     @Override
-    public Optional<User> findByCedula(String cedula) {
-        return find("cedula", cedula).firstResultOptional().map(mapper::toDomain);
+    public Optional<User> findByCedulaHash(String cedulaHash) {
+        return find("cedulaHash", cedulaHash).firstResultOptional().map(mapper::toDomain);
     }
 
     @Override

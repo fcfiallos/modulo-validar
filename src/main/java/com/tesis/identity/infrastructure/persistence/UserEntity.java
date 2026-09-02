@@ -15,8 +15,12 @@ public class UserEntity extends PanacheEntityBase {
     @GeneratedValue
     private UUID id;
 
-    @Column(unique = true, nullable = false, columnDefinition = "TEXT")
-    private String cedula;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String cedula; // Cifrada (envelope encryption), no determinística: ver cedulaHash para búsqueda/unicidad.
+
+    @Column(name = "cedula_hash", unique = true, nullable = false)
+    private String cedulaHash; // Índice ciego (HMAC-SHA256) para localizar/deduplicar por cédula sin guardarla en claro.
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String nombres;
     @Column(nullable = false, columnDefinition = "TEXT")

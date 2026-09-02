@@ -6,6 +6,7 @@ import com.tesis.identity.application.dto.RegisterUserRequest;
 import com.tesis.identity.application.dto.UserResponse;
 import com.tesis.identity.application.dto.WorkSignatureRequest;
 import com.tesis.identity.application.mapper.UserMapper;
+import com.tesis.identity.application.ports.BlindIndexPort;
 import com.tesis.identity.application.ports.EncryptionPort;
 import com.tesis.identity.application.ports.TokenPort;
 import com.tesis.identity.application.ports.UserRepositoryPort;
@@ -40,6 +41,9 @@ public class AuthService {
     EncryptionPort encryptionService;
 
     @Inject
+    BlindIndexPort blindIndexService;
+
+    @Inject
     UserRepositoryPort userRepository;
 
     @Inject
@@ -61,8 +65,9 @@ public class AuthService {
         //    si la cédula o el correo ya están registrados; la restricción única
         //    de la base de datos sigue siendo la red de seguridad ante condiciones
         //    de carrera, ver ConstraintViolationMapper).
+        String cedulaHash = blindIndexService.hash(request.cedula());
         if (userRepository.findByEmail(request.correo()).isPresent()
-                || userRepository.findByCedula(request.cedula()).isPresent()) {
+                || userRepository.findByCedulaHash(cedulaHash).isPresent()) {
             throw new UserAlreadyExistsException("El correo o la cédula ya se encuentran registrados.");
         }
 
@@ -86,7 +91,8 @@ public class AuthService {
 
         log.info("Cifrando datos sensibles en HSM Azure antes de persistir...");
 
-        // Enmascaramos nombres y firma p12 (cifrado de sobre), y hasheamos el password
+        // Enmascaramos nombres, cédula y firma p12 (cifrado de sobre), y hasheamos el password
+        String encryptedCedula = encryptionService.encrypt(request.cedula());
         String encryptedNombres = encryptionService.encrypt(request.nombres());
         String encryptedApellidos = encryptionService.encrypt(request.apellidos());
         String encryptedFirmaP12 = encryptionService.encrypt(request.p12Base64());
@@ -94,7 +100,8 @@ public class AuthService {
 
         User newUser = new User(
                 null,
-                request.cedula(),
+                encryptedCedula,
+                cedulaHash,
                 encryptedNombres,
                 encryptedApellidos,
                 request.correo(),
@@ -126,10 +133,11 @@ public class AuthService {
                     "Credenciales incorrectas. Verifique su correo y contraseña.");
         }
 
-        // Los nombres/apellidos se guardan cifrados: se descifran para la respuesta
+        // Los nombres/apellidos/cédula se guardan cifrados: se descifran para la respuesta y el JWT
         User userLegible = new User(
                 user.id(),
-                user.cedula(),
+                encryptionService.decrypt(user.cedula()),
+                user.cedulaHash(),
                 encryptionService.decrypt(user.nombres()),
                 encryptionService.decrypt(user.apellidos()),
                 user.correo(),
@@ -148,7 +156,7 @@ public class AuthService {
 
     // --- FIRMA DE OBRA ---
     public JsonObject processWorkSignature(WorkSignatureRequest request) {
-        User user = userRepository.findByCedula(request.cedula())
+        User user = userRepository.findByCedulaHash(blindIndexService.hash(request.cedula()))
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado en el sistema."));
 
         log.info("Solicitando llave maestra a Azure para liberar credencial de custodia...");

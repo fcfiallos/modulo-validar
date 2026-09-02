@@ -71,6 +71,7 @@ public class VaultEncryptionService implements EncryptionPort {
     @Override
     public String encrypt(String plainText) {
         if (plainText == null || plainText.isEmpty()) return plainText;
+        log.info("[VaultEncryptionService] encrypt() invocado, longitud plaintext={}", plainText.length());
 
         try {
             // 1. Generar una llave AES-256 local (Data Encryption Key - DEK)
@@ -155,19 +156,19 @@ public class VaultEncryptionService implements EncryptionPort {
     }
 
     private byte[] localFallbackWrap(byte[] rawAesKey, Exception azureEx) {
-        requireFallbackAllowed(azureEx);
+        requireFallbackAllowed(azureEx, "encrypt");
         byte[] padded = new byte[WRAPPED_KEY_LENGTH];
         System.arraycopy(rawAesKey, 0, padded, 0, rawAesKey.length);
         return xorWithLocalMasterKey(padded);
     }
 
     private byte[] localFallbackUnwrap(byte[] wrappedAesKey, Exception azureEx) {
-        requireFallbackAllowed(azureEx);
+        requireFallbackAllowed(azureEx, "decrypt");
         byte[] unpadded = xorWithLocalMasterKey(wrappedAesKey);
         return Arrays.copyOf(unpadded, 32); // AES-256 -> 32 bytes
     }
 
-    private void requireFallbackAllowed(Exception azureEx) {
+    private void requireFallbackAllowed(Exception azureEx, String operacion) {
         if (!allowInsecureFallback) {
             throw new IllegalStateException(
                     "Azure Key Vault no disponible y el fallback de cifrado local está deshabilitado "
@@ -175,8 +176,8 @@ public class VaultEncryptionService implements EncryptionPort {
                             + "Configure Managed Identity y acceso a Key Vault antes de desplegar.",
                     azureEx);
         }
-        log.warn("[VaultEncryptionService] ALERTA DE SEGURIDAD: Azure Key Vault no disponible, "
+        log.warn("[VaultEncryptionService] ALERTA DE SEGURIDAD ({}): Azure Key Vault no disponible, "
                 + "aplicando sobre criptográfico LOCAL INSEGURO (fallback temporal, ver tesis.encryption.allow-insecure-fallback). Causa: {}",
-                azureEx.getMessage());
+                operacion, azureEx.getMessage(), azureEx);
     }
 }

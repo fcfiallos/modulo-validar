@@ -11,6 +11,7 @@ public class UserEntityMapper {
         return new User(
                 entity.getId(),
                 entity.getCedula(),
+                entity.getCedulaHash(),
                 entity.getNombres(),
                 entity.getApellidos(),
                 entity.getCorreo(),
@@ -28,6 +29,7 @@ public class UserEntityMapper {
         return UserEntity.builder()
                 .id(user.id())
                 .cedula(user.cedula())
+                .cedulaHash(user.cedulaHash())
                 .nombres(user.nombres())
                 .apellidos(user.apellidos())
                 .correo(user.correo())

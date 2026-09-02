@@ -1,11 +1,16 @@
 package com.tesis.identity.infrastructure.security;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import java.time.Duration;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import io.quarkus.runtime.LaunchMode;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -32,10 +37,10 @@ public class AzureKeyVaultClient {
      * Managed Identity) sin cambiar nada aquí.
      */
     @Produces
-    @ApplicationScoped
+    @Dependent
     public CryptographyClient produceCryptographyClient() {
         try {
-            var credential = new DefaultAzureCredentialBuilder().build();
+            var credential = resolveCredential();
 
             KeyClient keyClient = new KeyClientBuilder()
                     .vaultUrl(vaultUrl)
@@ -65,7 +70,7 @@ public class AzureKeyVaultClient {
     @JwtSigningKey
     @ApplicationScoped
     public CryptographyClient produceJwtCryptographyClient() {
-        var credential = new DefaultAzureCredentialBuilder().build();
+        var credential = resolveCredential();
 
         KeyClient keyClient = new KeyClientBuilder()
                 .vaultUrl(vaultUrl)
@@ -78,5 +83,25 @@ public class AzureKeyVaultClient {
                 .keyIdentifier(keyId)
                 .credential(credential)
                 .buildClient();
+    }
+
+    /**
+     * En dev, DefaultAzureCredential recorre en cadena 8 métodos (Environment,
+     * Workload Identity, Managed Identity con timeout de IMDS, Shared Token
+     * Cache, IntelliJ, PowerShell, Azure Developer CLI...) antes de llegar a
+     * Azure CLI, agregando ~1-2 min de espera por cada CryptographyClient. En
+     * local ya se autenticó con `az login`, así que se salta directo a
+     * AzureCliCredential. En el resto de perfiles se mantiene
+     * DefaultAzureCredential para que Managed Identity siga funcionando en
+     * Azure App Service/Container Apps.
+     */
+    private TokenCredential resolveCredential() {
+        if (LaunchMode.current() == LaunchMode.DEVELOPMENT) {
+            // Default de 10s es muy corto para lo que tarda `az` en arrancar en
+            // algunas máquinas Windows; con eso agotado, el SDK reporta
+            // "unavailable" aunque el CLI hubiera respondido con más margen.
+            return new AzureCliCredentialBuilder().processTimeout(Duration.ofSeconds(60)).build();
+        }
+        return new DefaultAzureCredentialBuilder().build();
     }
 }
