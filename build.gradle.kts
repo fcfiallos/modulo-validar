@@ -23,9 +23,14 @@ dependencies {
     // 3. CLIENTE HTTP
     implementation("io.quarkus:quarkus-rest-client")
     implementation("io.quarkus:quarkus-rest-client-jsonb")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
 
     // 4. SEGURIDAD FORENSE
     implementation("org.mindrot:jbcrypt:0.4")
+
+    // Bean Validation (Jakarta Validation / Hibernate Validator)
+    implementation("io.quarkus:quarkus-hibernate-validator")
 
     //5. key de azure
     implementation("com.azure:azure-security-keyvault-keys:4.10.6")

@@ -26,6 +26,8 @@ import lombok.extern.java.Log;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.util.UUID;
+
 @Log
 @ApplicationScoped
 public class AuthService {
@@ -155,9 +157,21 @@ public class AuthService {
     }
 
     // --- FIRMA DE OBRA ---
-    public JsonObject processWorkSignature(WorkSignatureRequest request) {
-        User user = userRepository.findByCedulaHash(blindIndexService.hash(request.cedula()))
+    public JsonObject processWorkSignature(WorkSignatureRequest request, String subject) {
+        UUID userId;
+        try {
+            userId = UUID.fromString(subject);
+        } catch (IllegalArgumentException exception) {
+            throw new UserNotFoundException("La identidad autenticada no es válida.");
+        }
+
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado en el sistema."));
+
+        String cedulaAutenticada = encryptionService.decrypt(user.cedula());
+        if (!cedulaAutenticada.equals(request.cedula())) {
+            throw new UserNotFoundException("La cédula no pertenece al usuario autenticado.");
+        }
 
         log.info("Solicitando llave maestra a Azure para liberar credencial de custodia...");
         String decryptedP12 = encryptionService.decrypt(user.firmaP12());

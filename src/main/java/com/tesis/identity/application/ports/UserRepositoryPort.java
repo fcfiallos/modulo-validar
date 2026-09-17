@@ -3,6 +3,7 @@ package com.tesis.identity.application.ports;
 import com.tesis.identity.domain.models.User;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Puerto de acceso a datos de usuarios. La aplicación depende de esta
@@ -12,6 +13,8 @@ import java.util.Optional;
 public interface UserRepositoryPort {
 
     Optional<User> findByEmail(String correo);
+
+    Optional<User> findById(UUID id);
 
     Optional<User> findByCedulaHash(String cedulaHash);
 

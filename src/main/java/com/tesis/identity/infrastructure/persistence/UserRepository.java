@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class UserRepository implements UserRepositoryPort, PanacheRepository<UserEntity> {
@@ -19,6 +20,11 @@ public class UserRepository implements UserRepositoryPort, PanacheRepository<Use
     @Override
     public Optional<User> findByEmail(String correo) {
         return find("correo", correo).firstResultOptional().map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<User> findById(UUID id) {
+        return find("id", id).firstResultOptional().map(mapper::toDomain);
     }
 
     @Override

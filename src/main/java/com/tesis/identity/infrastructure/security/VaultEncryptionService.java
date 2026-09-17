@@ -38,7 +38,7 @@ public class VaultEncryptionService implements EncryptionPort {
      * Key Vault en producción falle duro (500) en vez de cifrar con esta
      * llave débil.
      */
-    @ConfigProperty(name = "tesis.encryption.allow-insecure-fallback", defaultValue = "true")
+    @ConfigProperty(name = "tesis.encryption.allow-insecure-fallback", defaultValue = "false")
     boolean allowInsecureFallback;
 
     private static final String AES_ALGORITHM = "AES/GCM/NoPadding";

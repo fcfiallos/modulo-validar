@@ -7,6 +7,7 @@ import com.tesis.identity.application.dto.RegisterUserRequest;
 import com.tesis.identity.application.dto.UserResponse;
 import com.tesis.identity.application.dto.WorkSignatureRequest;
 import io.quarkus.security.Authenticated;
+import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
@@ -33,6 +34,9 @@ public class UserResource {
 
     @Inject
     AuthService authService;
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     @POST
     @Path("/registro")
@@ -93,7 +97,7 @@ public class UserResource {
     @Authenticated
     @Blocking
     public Response signTest(WorkSignatureRequest request) {
-        JsonObject result = authService.processWorkSignature(request);
+        JsonObject result = authService.processWorkSignature(request, securityIdentity.getPrincipal().getName());
         return Response.ok(result).build();
     }
 }
