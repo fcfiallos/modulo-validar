@@ -10,20 +10,19 @@ import com.tesis.identity.application.ports.BlindIndexPort;
 import com.tesis.identity.application.ports.EncryptionPort;
 import com.tesis.identity.application.ports.TokenPort;
 import com.tesis.identity.application.ports.UserRepositoryPort;
+import com.tesis.identity.application.ports.IdentityValidationPort;
+import com.tesis.identity.application.ports.SignaturePort;
 import com.tesis.identity.domain.exceptions.BusinessRuleViolationException;
 import com.tesis.identity.domain.exceptions.InvalidCredentialsException;
 import com.tesis.identity.domain.exceptions.TermsNotAcceptedException;
 import com.tesis.identity.domain.exceptions.UserAlreadyExistsException;
 import com.tesis.identity.domain.exceptions.UserNotFoundException;
 import com.tesis.identity.domain.models.User;
-import com.tesis.identity.infrastructure.client.IdentityClient;
-import com.tesis.identity.infrastructure.client.SignatureClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import lombok.extern.java.Log;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.UUID;
@@ -33,11 +32,9 @@ import java.util.UUID;
 public class AuthService {
 
     @Inject
-    @RestClient
-    IdentityClient identityClient;
+    IdentityValidationPort identityClient;
     @Inject
-    @RestClient
-    SignatureClient signatureClient;
+    SignaturePort signatureClient;
 
     @Inject
     EncryptionPort encryptionService;
